@@ -5,7 +5,8 @@ import Options.Applicative
 
 data Commands
   = Add SinglePattern
-  | Remove SinglePattern
+  | Remove
+  | Print
 
 newtype SinglePattern
   = SinglePattern G.PlainPattern
@@ -26,10 +27,6 @@ pAddSingle :: Parser Commands
 pAddSingle =
   Add <$> pSinglePattern
 
-pRemoveSingle :: Parser Commands
-pRemoveSingle =
-  Remove <$> pSinglePattern
-
 pCommands :: Parser Commands
 pCommands =
   subparser
@@ -42,8 +39,14 @@ pCommands =
         <> command
           "remove"
           ( info
-              (helper <*> pRemoveSingle)
+              (helper <*> pure Remove)
               (progDesc "Remove a single pattern from .gitignore")
+          )
+        <> command
+          "print"
+          ( info 
+            (helper <*> pure Print)
+            (progDesc "Print .gitignore's content")
           )
     )
 
@@ -53,7 +56,7 @@ comms =
     (helper <*> pCommands)
     ( fullDesc
         <> header "gitignore - a utility to manipulate .gitignore in a git repository"
-        <> progDesc "Add patterns to your project's .gitignore"
+        <> progDesc "Add/change/remove patterns to your project's .gitignore"
     )
 
 parse :: IO Commands
