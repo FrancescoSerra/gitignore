@@ -2,11 +2,7 @@
 
 module Main where
 
--- import GHC.IO.Exception (ExitCode (ExitSuccess))
--- import System.Process
-
 import CliOptions
-import System.Directory (doesFileExist)
 import System.Exit (exitFailure)
 import Gitignore
 import GHC.IO.StdHandles
@@ -15,28 +11,24 @@ import GHC.IO.IOMode
 
 main :: IO ()
 main = do
-  exists <- doesFileExist ".gitignore"
-  shouldOpenFile <-
-    if not exists
-      then confirm
-      else pure True
-  if shouldOpenFile
-    then processAction
-    else
-      exitFailure
+  exists <- checkGitignoreExists
+  if not exists
+  then confirmAndCreate
+  else pure ()
+  processAction
   putStrLn "Done!"
 
 -- | Confirm user action
-confirm :: IO Bool
-confirm =
+confirmAndCreate :: IO ()
+confirmAndCreate =
   putStrLn ".gitignore doesn't exist in the current directory. Do you want to create it? (y/n)"
     *> getLine
     >>= \case
-      "y" -> pure True
-      "n" -> pure False
+      "y" -> createGitignore
+      "n" -> exitFailure
       _ ->
         putStrLn "Invalid response. use y or n"
-          *> confirm
+          *> confirmAndCreate
 
 processAction :: IO ()
 processAction = do
