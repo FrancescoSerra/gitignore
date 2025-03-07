@@ -5,8 +5,10 @@ version:            0.1.0.0
 
 synopsis:           Simple .gitignore manipulator
 
-description:        This simple .gitignore manipulator aims at adding patterns
+description:        This simple .gitignore manipulator aims at enabling the user to add patterns
                     to .gitignore, remove them and list the file's content
+
+category:           Development
 
 license:            BSD-3-Clause
 
@@ -16,13 +18,15 @@ author:             Francesco Serra
 
 maintainer:         francescoserra@duck.com
 
-copyright:          
-  (c) Francesco Serra
-category:           Development
+copyright:          (c) Francesco Serra
+
 build-type:         Simple
 
-extra-doc-files:    CHANGELOG.md
+extra-doc-files:    CHANGELOG.md README.md
 
+source-repository head
+  type: git
+  location: https://github.com/FrancescoSerra/gitignore
 
 common common-settings
   default-language: Haskell2010
@@ -33,8 +37,8 @@ library
     import: common-settings
     hs-source-dirs: src
     build-depends:
-      base
-      , directory
+      base >= 4.17 && < 5
+      , directory <= 1.3.9.0
     exposed-modules:
         Gitignore
 
@@ -43,11 +47,9 @@ executable gitignore
     main-is:          Main.hs
     other-modules: CliOptions
     build-depends:   
-        base
-        , optparse-applicative
-        , process
+        base >= 4.17 && < 5
+        , optparse-applicative <= 0.18.1.0
+        , process <= 1.6.25.0
         , gitignore
-        , directory
+        , directory <= 1.3.9.0
     hs-source-dirs:   app
-    ghc-options:
-      -O
