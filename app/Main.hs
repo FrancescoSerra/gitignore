@@ -3,18 +3,14 @@
 module Main where
 
 import CliOptions
-import System.Exit (exitFailure)
+import Control.Monad (unless)
 import Gitignore
-import GHC.IO.StdHandles
-import GHC.IO.IOMode
-
+import System.Exit (exitFailure)
 
 main :: IO ()
 main = do
   exists <- checkGitignoreExists
-  if not exists
-  then confirmAndCreate
-  else pure ()
+  unless exists confirmAndCreate
   processAction
   putStrLn "Done!"
 
@@ -32,13 +28,11 @@ confirmAndCreate =
 
 processAction :: IO ()
 processAction = do
-        commands <- parse
-        case commands of
-          Add (SinglePattern plainPattern) -> do
-            addPattern plainPattern ".gitignore"
-          
-          Remove -> do
-            removePattern ".gitignore"
-          
-          Print -> do
-            withFile ".gitignore" ReadMode printOut
+  commands <- parse
+  case commands of
+    Add (SinglePattern plainPattern) -> do
+      addPattern plainPattern
+    Remove -> do
+      removePattern
+    Print -> do
+      printOut
