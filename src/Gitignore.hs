@@ -1,68 +1,88 @@
 module Gitignore where
 
+import Control.Monad
 import Data.List (delete)
-import System.Directory
-import System.IO
-import System.Exit (exitFailure)
+import Gitignore.Internal
+import Text.Read (readMaybe)
 
+-- domain types --
 newtype PlainPattern = PlainPattern String
 
-checkGitignoreExists :: IO Bool
-checkGitignoreExists = doesFileExist ".gitignore"
+-- business logic --
+checkGitignoreExists :: (MonadCheckFileExistence m) => m Bool
+checkGitignoreExists = checkFileExists ".gitignore"
 
-createGitignore :: IO ()
+createGitignore :: (MonadAppendFile m) => m ()
 createGitignore = do
-  yes <- checkGitignoreExists
-  if not yes
-    then appendFile ".gitignore" "## .gitignore created by Gitignore" 
-    else exitFailure
+  appendToFile ".gitignore" "## .gitignore created by Gitignore"
 
-checkLastCharIsNewLine :: IO Bool
-checkLastCharIsNewLine = do
-  yes <- checkGitignoreExists
-  if yes
-    then do
-      content <- readFile ".gitignore"
-      pure (last content == '\n')
-    else
-      exitFailure
+checkLastCharIsNewLine :: (MonadCheckLastCharIsNewLine m) => m Bool
+checkLastCharIsNewLine =
+  checkIfNewLineEnding ".gitignore"
 
-addPattern :: PlainPattern -> FilePath -> IO ()
-addPattern (PlainPattern pattern) file = do
-  content <- readFile file
+readGitignoreContent :: (MonadReadContent m) => m String
+readGitignoreContent = readContent ".gitignore"
+
+appendToGitignore :: (MonadAppendFile m) => String -> m ()
+appendToGitignore = appendToFile ".gitignore"
+
+removeGitignore :: (MonadCanDeleteFile m) => m ()
+removeGitignore = deleteFile ".gitignore"
+
+renameFileToGitignore :: (MonadCanRenameFile m) => FilePath -> m ()
+renameFileToGitignore = flip changeFileName ".gitignore"
+
+writeToTempGitignore :: (MonadCanWriteToTempFile m) => String -> m FilePath
+writeToTempGitignore = writeToTempFile "." ".gitignore~"
+
+
+
+
+-- public API --
+
+addPattern :: (CanAddPattern m) => PlainPattern -> m ()
+addPattern (PlainPattern pattern) = do
+  content <- readGitignoreContent
   let w = words content
   if pattern `elem` w
-  then  hPutStrLn stderr "Error: pattern already present in .gitignore"
-  else do
-    yes <- checkLastCharIsNewLine
-    if not yes
-      then appendFile file "\n"
-      else pure ()
-    appendFile file pattern
+    then writeToStdErr "Error: pattern already present in .gitignore"
+    else do
+      yes <- checkLastCharIsNewLine
+      unless yes $ appendToGitignore "\n"
+      appendToGitignore pattern
 
-removePattern :: FilePath -> IO ()
-removePattern file = do
-  handle <- openFile file ReadMode
-  content <- hGetContents handle
+removePattern :: (CanRemovePattern m) => m ()
+removePattern = do
+  content <- readGitignoreContent
   let contentLines = lines content
       numberedLines = zipWith (\n line -> show (n :: Int) <> ": " <> line) [1 ..] contentLines
-  putStrLn "Which pattern would you like to remove? (0 to abort)"
-  putStr $ unlines numberedLines
-  numberString <- getLine
-  let number = read numberString
+  writeToStdOut "Which pattern would you like to remove? (0 to abort)"
+  writeToStdOut $ unlines numberedLines
+  number <- readIntoNumber
   if number == 0
-    then do
-      hClose handle
+    then
+      pure ()
     else do
-      let newContentLines = delete (contentLines !! (number - 1)) contentLines
-      (tempName, tempHandle) <- openTempFile "." ".gitignore~"
-      hPutStr tempHandle $ unlines newContentLines
-      hClose handle
-      hClose tempHandle
-      removeFile file
-      renameFile tempName file
+      let newContentLines = unlines $ delete (contentLines !! (number - 1)) contentLines
+      fileName <- writeToTempGitignore newContentLines
+      removeGitignore
+      renameFileToGitignore fileName
 
-printOut :: Handle -> IO ()
-printOut file = do
-  content <- hGetContents file
-  putStrLn content
+printOut :: (CanReadAndPrintContent m) => m ()
+printOut = do
+  content <- readGitignoreContent
+  writeToStdOut content
+
+
+
+
+--- Helper functions ---
+
+readIntoNumber :: (Read a, CanRemovePattern m) => m a
+readIntoNumber = do
+  numberString <- readFromStdIn
+  case readMaybe numberString of
+    Just int -> pure int
+    Nothing -> do
+      writeToStdOut "Invalid input. Please enter a number."
+      readIntoNumber
