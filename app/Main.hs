@@ -3,8 +3,9 @@
 module Main where
 
 import CliOptions
+import CliApp ( addPattern, removePattern, printOut )
 import Control.Monad (unless)
-import Gitignore
+import Gitignore ( checkGitignoreExists, createGitignore )
 import System.Exit (exitFailure)
 
 main :: IO ()

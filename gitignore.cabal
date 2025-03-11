@@ -44,12 +44,15 @@ library
     exposed-modules:
         Gitignore
     other-modules:
-        Gitignore.Internal
+      Gitignore.Internal
+        
 
 executable gitignore
     import:           common-settings
     main-is:          Main.hs
-    other-modules: CliOptions
+    other-modules: 
+      CliOptions
+      CliApp
     build-depends:   
         base >= 4.16.4.0 && < 5
         , optparse-applicative <= 0.18.1.0

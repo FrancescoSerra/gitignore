@@ -44,9 +44,9 @@ class
   CanReadAndPrintContent m
 
 class (
-  MonadReadContent m, 
-  MonadCanWriteToStdOut m, 
-  MonadCanReadFromStdIn m, 
+  MonadReadContent m,
+  MonadCanWriteToStdOut m,
+  MonadCanReadFromStdIn m,
   MonadCanWriteToTempFile m,
   MonadCanDeleteFile m,
   MonadCanRenameFile m
@@ -68,7 +68,7 @@ instance MonadCanWriteToStdErr IO where
   writeToStdErr = hPutStrLn stderr
 
 instance MonadCanWriteToStdOut IO where
-  writeToStdOut = hPutStrLn stdout
+  writeToStdOut = putStrLn
 
 instance MonadReadContent IO where
   readContent = readFile
