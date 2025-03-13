@@ -2,6 +2,7 @@ module CliApp (
   addPattern
   , removePattern
   , printOut
+  , readIntoNumber
 )
 where
 

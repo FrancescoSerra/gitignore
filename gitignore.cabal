@@ -42,7 +42,8 @@ library
       , temporary <= 1.3
       , text <= 2.0.2
     exposed-modules:
-        Gitignore
+      Gitignore
+      CliApp
     other-modules:
       Gitignore.Internal
         
@@ -52,7 +53,6 @@ executable gitignore
     main-is:          Main.hs
     other-modules: 
       CliOptions
-      CliApp
     build-depends:   
         base >= 4.16.4.0 && < 5
         , optparse-applicative <= 0.18.1.0
@@ -60,3 +60,20 @@ executable gitignore
         , gitignore
         , directory <= 1.3.9.0
     hs-source-dirs:   app
+
+test-suite gitignore-test
+    import:           common-settings
+    type:             exitcode-stdio-1.0
+    hs-source-dirs: test
+    main-is: Spec.hs
+    other-modules: 
+      GitignoreSpec
+    build-depends:   
+        base
+      , hspec
+      , hspec-discover
+      , gitignore
+    ghc-options:
+      -threaded -rtsopts -with-rtsopts=-N
+    build-tool-depends:
+      hspec-discover:hspec-discover

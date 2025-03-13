@@ -1,5 +1,9 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE InstanceSigs #-}
 module Gitignore.Internal where
 
+import Control.Monad
+import Data.Functor.Identity
 import System.Directory
 import System.IO
 import System.IO.Temp
@@ -43,14 +47,15 @@ class
   (MonadReadContent m, MonadCanWriteToStdOut m) =>
   CanReadAndPrintContent m
 
-class (
-  MonadReadContent m,
-  MonadCanWriteToStdOut m,
-  MonadCanReadFromStdIn m,
-  MonadCanWriteToTempFile m,
-  MonadCanDeleteFile m,
-  MonadCanRenameFile m
-  ) => CanRemovePattern m
+class
+  ( MonadReadContent m,
+    MonadCanWriteToStdOut m,
+    MonadCanReadFromStdIn m,
+    MonadCanWriteToTempFile m,
+    MonadCanDeleteFile m,
+    MonadCanRenameFile m
+  ) =>
+  CanRemovePattern m
 
 -- IO instances --
 instance MonadCheckFileExistence IO where
@@ -86,5 +91,65 @@ instance MonadCanRenameFile IO where
   changeFileName = renameFile
 
 instance CanAddPattern IO
+
 instance CanReadAndPrintContent IO
+
 instance CanRemovePattern IO
+
+-- Identity instances --
+instance MonadCheckFileExistence Identity where
+  checkFileExists _ = pure True
+
+instance MonadAppendFile Identity where
+  appendToFile _ _ = pure ()
+
+instance MonadCheckLastCharIsNewLine Identity where
+  checkIfNewLineEnding _ = pure True
+
+instance MonadCanWriteToStdErr Identity where
+  writeToStdErr _ = pure ()
+
+instance MonadCanWriteToStdOut Identity where
+  writeToStdOut _ = pure ()
+
+instance MonadReadContent Identity where
+  readContent _ = pure ""
+
+instance MonadCanReadFromStdIn Identity where
+  readFromStdIn = pure "1"
+
+instance MonadCanWriteToTempFile Identity where
+  writeToTempFile _ _ _ = pure ""
+
+instance MonadCanDeleteFile Identity where
+  deleteFile _ = pure ()
+
+instance MonadCanRenameFile Identity where
+  changeFileName _ _ = pure ()
+
+instance CanAddPattern Identity
+
+instance CanReadAndPrintContent Identity
+
+instance CanRemovePattern Identity
+
+-- Either instances --
+
+
+data Computation a = Error String | Result a
+  deriving (Functor, Show, Eq)
+
+instance Applicative Computation where
+  pure = Result
+  (<*>) :: Computation (a -> b) -> Computation a -> Computation b
+  (<*>) = ap
+
+instance Monad Computation where
+  (Result x)  >>= k   =  k x
+  (Error a)   >>= _   =  Error a
+
+instance MonadCanReadFromStdIn Computation where
+  readFromStdIn = pure "boom!"
+
+instance MonadCanWriteToStdOut Computation where
+  writeToStdOut = Error
