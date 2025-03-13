@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE InstanceSigs #-}
+
 module Gitignore.Internal where
 
 import Control.Monad
-import Data.Functor.Identity
 import System.Directory
 import System.IO
 import System.IO.Temp
@@ -96,45 +96,7 @@ instance CanReadAndPrintContent IO
 
 instance CanRemovePattern IO
 
--- Identity instances --
-instance MonadCheckFileExistence Identity where
-  checkFileExists _ = pure True
-
-instance MonadAppendFile Identity where
-  appendToFile _ _ = pure ()
-
-instance MonadCheckLastCharIsNewLine Identity where
-  checkIfNewLineEnding _ = pure True
-
-instance MonadCanWriteToStdErr Identity where
-  writeToStdErr _ = pure ()
-
-instance MonadCanWriteToStdOut Identity where
-  writeToStdOut _ = pure ()
-
-instance MonadReadContent Identity where
-  readContent _ = pure ""
-
-instance MonadCanReadFromStdIn Identity where
-  readFromStdIn = pure "1"
-
-instance MonadCanWriteToTempFile Identity where
-  writeToTempFile _ _ _ = pure ""
-
-instance MonadCanDeleteFile Identity where
-  deleteFile _ = pure ()
-
-instance MonadCanRenameFile Identity where
-  changeFileName _ _ = pure ()
-
-instance CanAddPattern Identity
-
-instance CanReadAndPrintContent Identity
-
-instance CanRemovePattern Identity
-
--- Either instances --
-
+-- Computation instances --
 
 data Computation a = Error String | Result a
   deriving (Functor, Show, Eq)
@@ -145,11 +107,91 @@ instance Applicative Computation where
   (<*>) = ap
 
 instance Monad Computation where
-  (Result x)  >>= k   =  k x
-  (Error a)   >>= _   =  Error a
+  (Result x) >>= k = k x
+  (Error a) >>= _ = Error a
 
 instance MonadCanReadFromStdIn Computation where
-  readFromStdIn = pure "boom!"
+  readFromStdIn = pure "1"
 
 instance MonadCanWriteToStdOut Computation where
-  writeToStdOut = Error
+  writeToStdOut _ = pure ()
+
+instance MonadCanWriteToStdErr Computation where
+  writeToStdErr _ = pure ()
+
+instance MonadCanWriteToTempFile Computation where
+  writeToTempFile filePath _ _ = pure filePath
+
+instance MonadCanDeleteFile Computation where
+  deleteFile _ = pure ()
+
+instance MonadCanRenameFile Computation where
+  changeFileName _ _ = pure ()
+
+instance MonadCheckFileExistence Computation where
+  checkFileExists _ = pure True
+
+instance MonadAppendFile Computation where
+  appendToFile _ _ = pure ()
+
+instance MonadCheckLastCharIsNewLine Computation where
+  checkIfNewLineEnding _ = pure True
+
+instance MonadReadContent Computation where
+  readContent _ = pure "content"
+
+instance CanAddPattern Computation
+
+instance CanReadAndPrintContent Computation
+
+instance CanRemovePattern Computation
+
+-- FailedComputation instances --
+
+newtype FailedComputation a = FailedComputation (Computation a)
+  deriving (Show, Eq, Functor)
+
+instance Applicative FailedComputation where
+  pure = FailedComputation . pure
+  (<*>) :: FailedComputation (a -> b) -> FailedComputation a -> FailedComputation b
+  (<*>) = ap
+
+instance Monad FailedComputation where
+    (FailedComputation (Result x)) >>= k = k x
+    (FailedComputation (Error a)) >>= _ = FailedComputation $ Error a
+
+instance MonadCanReadFromStdIn FailedComputation where
+  readFromStdIn = pure "boom!"
+
+instance MonadCanWriteToStdOut FailedComputation where
+  writeToStdOut s = FailedComputation $ Error s
+
+instance MonadCanWriteToStdErr FailedComputation where
+  writeToStdErr s = FailedComputation $ Error s
+
+instance MonadCanWriteToTempFile FailedComputation where
+  writeToTempFile filePath _ _ = FailedComputation $ Error filePath
+
+instance MonadCanDeleteFile FailedComputation where
+  deleteFile s = FailedComputation $ Error s
+
+instance MonadCanRenameFile FailedComputation where
+  changeFileName filePath _ = FailedComputation $ Error filePath
+
+instance MonadCheckFileExistence FailedComputation where
+  checkFileExists filePath = FailedComputation $ Error filePath
+
+instance MonadAppendFile FailedComputation where
+  appendToFile filePath _ = FailedComputation $ Error filePath
+
+instance MonadCheckLastCharIsNewLine FailedComputation where
+  checkIfNewLineEnding filePath = FailedComputation $ Error filePath
+
+instance MonadReadContent FailedComputation where
+  readContent filePath = FailedComputation $ Error filePath
+
+instance CanAddPattern FailedComputation
+
+instance CanReadAndPrintContent FailedComputation
+
+instance CanRemovePattern FailedComputation
